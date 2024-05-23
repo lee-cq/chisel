@@ -5,14 +5,17 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/jpillora/chisel/share/ccrypto"
 )
+
+var KEY = []byte("SSAAsqweasd")
 
 type wsConn struct {
 	*websocket.Conn
 	buff []byte
 }
 
-//NewWebSocketConn converts a websocket.Conn into a net.Conn
+// NewWebSocketConn converts a websocket.Conn into a net.Conn
 func NewWebSocketConn(websocketConn *websocket.Conn) net.Conn {
 	c := wsConn{
 		Conn: websocketConn,
@@ -20,8 +23,8 @@ func NewWebSocketConn(websocketConn *websocket.Conn) net.Conn {
 	return &c
 }
 
-//Read is not threadsafe though thats okay since there
-//should never be more than one reader
+// Read is not threadsafe though thats okay since there
+// should never be more than one reader
 func (c *wsConn) Read(dst []byte) (int, error) {
 	ldst := len(dst)
 	//use buffer or read new message
@@ -30,7 +33,10 @@ func (c *wsConn) Read(dst []byte) (int, error) {
 		src = c.buff
 		c.buff = nil
 	} else if _, msg, err := c.Conn.ReadMessage(); err == nil {
-		src = msg
+		// 解码
+		if src, err = ccrypto.AesDecrypt(msg, KEY); err != nil {
+			return 0, err
+		}
 	} else {
 		return 0, err
 	}
@@ -53,7 +59,12 @@ func (c *wsConn) Read(dst []byte) (int, error) {
 }
 
 func (c *wsConn) Write(b []byte) (int, error) {
-	if err := c.Conn.WriteMessage(websocket.BinaryMessage, b); err != nil {
+	// 加密
+	data, err := ccrypto.AesEncrypt(b, KEY)
+	if err != nil {
+		return 0, err
+	}
+	if err := c.Conn.WriteMessage(websocket.BinaryMessage, data); err != nil {
 		return 0, err
 	}
 	n := len(b)
