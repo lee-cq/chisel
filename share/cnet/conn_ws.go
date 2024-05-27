@@ -8,7 +8,7 @@ import (
 	"github.com/jpillora/chisel/share/ccrypto"
 )
 
-var KEY = []byte("SSAAsqweasd")
+var KEY = []byte("!hIILNb!O;vq7&&hb'58'wJvh,Z#5B&f")
 
 type wsConn struct {
 	*websocket.Conn
